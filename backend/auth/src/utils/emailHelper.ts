@@ -1,4 +1,4 @@
-import nodemailer, { SentMessageInfo } from "nodemailer";
+import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -10,10 +10,7 @@ const getEmailPass = () => {
   const pass = process.env.GMAIL_APP_PASSWORD || process.env.EMAIL_PASS;
   return pass?.replace(/\s/g, "");
 };
-console.log("EMAIL USER:", getEmailUser());
-console.log("EMAIL PASS EXISTS:", !!getEmailPass());
 
-// ✅ FIXED SMTP CONFIG (IMPORTANT)
 const getTransporter = () => {
   const user = getEmailUser();
   const pass = getEmailPass();
@@ -48,10 +45,9 @@ export const sendOtpEmail = async (email: string, code: string) => {
     to: email,
     subject: "Verify your email - Blog App",
     html: `
-      <div style="font-family: Arial; padding:20px;">
-        <h2>Verification Code</h2>
-        <h1 style="letter-spacing:6px">${code}</h1>
-        <p>Expires in 10 minutes</p>
+      <div>
+        <h2>OTP Code</h2>
+        <h1>${code}</h1>
       </div>
     `,
   };
@@ -59,20 +55,14 @@ export const sendOtpEmail = async (email: string, code: string) => {
   try {
     console.log("📧 Sending email to:", email);
 
-    // ✅ TIMEOUT WRAPPER (PREVENT HANGING)
-    const info: SentMessageInfo = await Promise.race([
-      transporter.sendMail(mailOptions),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Email timeout")), 10000)
-      ),
-    ]);
+    // ✅ SIMPLE VERSION (NO TIMEOUT, NO RACE)
+    const info = await transporter.sendMail(mailOptions);
 
     console.log("✅ Email sent:", info.messageId);
+
     return true;
   } catch (err) {
     console.error("❌ Email failed:", err);
-
-    // IMPORTANT: don't block registration
     return false;
   }
 };

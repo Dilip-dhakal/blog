@@ -18,31 +18,31 @@ app.use(
   })
 );
 
-app.get("/test-mail", async (req, res) => {
-  try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+// app.get("/test-mail", async (req, res) => {
+//   try {
+//     const transporter = nodemailer.createTransport({
+//       host: "smtp.gmail.com",
+//       port: 587,
+//       secure: false,
+//       auth: {
+//         user: process.env.EMAIL_USER,
+//         pass: process.env.EMAIL_PASS,
+//       },
+//     });
 
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER,
-      subject: "Test Email",
-      text: "If you see this, SMTP works",
-    });
+//     const info = await transporter.sendMail({
+//       from: process.env.EMAIL_USER,
+//       to: process.env.EMAIL_USER,
+//       subject: "Test Email",
+//       text: "If you see this, SMTP works",
+//     });
 
-    res.json(info);
-    res.send("Email sent successfully");
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
+//     res.json(info);
+//     res.send("Email sent successfully");
+//   } catch (err) {
+//     res.status(500).json(err);
+//   }
+// });
 
 app.use("/api/auth",authRoutes)
 
