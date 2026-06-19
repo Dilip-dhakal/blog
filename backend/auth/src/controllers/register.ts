@@ -72,12 +72,10 @@ const registerUser = async (req: Request, res: Response) => {
     },
   });
 
-  try {
-    await sendOtpEmail(email, otpCode);
-  } catch (mailError) {
-    console.error("Failed to send OTP email:", mailError);
-    // We log it but do not crash the registration, so devs can check logs if SMTP is down
-  }
+ // DO NOT block request waiting for email
+sendOtpEmail(email, otpCode).catch((err) => {
+  console.error("Email failed:", err);
+});
 
   res.status(200).json({
     message: "OTP verification code sent to your email",

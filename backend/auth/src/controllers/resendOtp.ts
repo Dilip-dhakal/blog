@@ -29,12 +29,10 @@ const resendOtp = async (req: Request, res: Response) => {
     create: { email, code: otpCode, expiresAt },
   });
 
-  try {
-    await sendOtpEmail(email, otpCode);
-  } catch (mailError) {
-    console.error("Failed to send OTP email:", mailError);
-    throw new ErrorHandler(500, "Failed to send verification email. Please try again.");
-  }
+  // DO NOT block request waiting for email
+  sendOtpEmail(email, otpCode).catch((err) => {
+    console.error("Failed to send OTP email:", err);
+  });
 
   res.status(200).json({
     message: "A new verification code has been sent to your email",
