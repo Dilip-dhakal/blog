@@ -36,33 +36,34 @@ export const sendOtpEmail = async (email: string, code: string) => {
   const transporter = getTransporter();
 
   if (!transporter) {
-    console.log(`[DEV MODE OTP] ${email} → ${code}`);
+    console.log(`[DEV OTP] ${email} → ${code}`);
     return true;
   }
 
   const mailOptions = {
-    from: `"Blog App" <${emailUser}>`,
+    from: emailUser,
     to: email,
-    subject: "Verify your email - Blog App",
-    html: `
-      <div>
-        <h2>OTP Code</h2>
-        <h1>${code}</h1>
-      </div>
-    `,
+    subject: "Verify OTP",
+    text: `Your OTP is ${code}`,
   };
 
+  console.log("📧 Sending email to:", email);
+
   try {
-    console.log("📧 Sending email to:", email);
+    // 🔥 IMPORTANT: add timeout safeguard
+    const sendPromise = transporter.sendMail(mailOptions);
 
-    // ✅ SIMPLE VERSION (NO TIMEOUT, NO RACE)
-    const info = await transporter.sendMail(mailOptions);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("SMTP timeout")), 8000)
+    );
 
-    console.log("✅ Email sent:", info.messageId);
+    const info = await Promise.race([sendPromise, timeoutPromise]);
+
+    console.log("✅ EMAIL SENT:", (info as any).messageId);
 
     return true;
   } catch (err) {
-    console.error("❌ Email failed:", err);
+    console.error("❌ EMAIL FAILED:", err);
     return false;
   }
 };
