@@ -10,6 +10,8 @@ const getEmailPass = () => {
   const pass = process.env.GMAIL_APP_PASSWORD || process.env.EMAIL_PASS;
   return pass?.replace(/\s/g, "");
 };
+console.log("EMAIL USER:", getEmailUser());
+console.log("EMAIL PASS EXISTS:", !!getEmailPass());
 
 // ✅ FIXED SMTP CONFIG (IMPORTANT)
 const getTransporter = () => {
