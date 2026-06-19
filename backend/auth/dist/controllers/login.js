@@ -15,6 +15,9 @@ const loginUser = async (req, res) => {
     if (!isUserExists) {
         throw new ErrorHandler(404, "User with given email id doesnt exists");
     }
+    if (!isUserExists.verified) {
+        throw new ErrorHandler(400, "Please verify your email address before logging in");
+    }
     const isMatch = await bcrypt.compare(password, isUserExists.hashedPassword);
     if (!isMatch) {
         throw new ErrorHandler(401, "Invalid Credentials");
@@ -25,9 +28,12 @@ const loginUser = async (req, res) => {
     });
     return res.status(200).json({
         message: "login successfull",
-        data: {
-            token,
-            userName: isUserExists.name
+        token,
+        user: {
+            id: isUserExists.id,
+            name: isUserExists.name,
+            email: isUserExists.email,
+            profilePicture: isUserExists.profilePicture
         }
     });
 };

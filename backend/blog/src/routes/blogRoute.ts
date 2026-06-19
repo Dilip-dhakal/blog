@@ -8,6 +8,7 @@ const router=express.Router()
 
 
 router.post("/",isLoggedIn,upload.single("blogFile"),Blog.createBlog)
+router.get("/stats",Blog.getBlogStats)
 router.get("/",Blog.getAllBlog)
 router.get("/user/me",isLoggedIn,Blog.getLoggedUserBlogs)
 router.get("/:id",Blog.getSingleBlog)

@@ -1,6 +1,7 @@
 import { prisma } from "../libs/prisma.js";
-import { ErrorHandler } from '../errors/errorHandler.js';
-import bcrypt from 'bcrypt';
+import { ErrorHandler } from "../errors/errorHandler.js";
+import bcrypt from "bcrypt";
+import { sendOtpEmail } from "../utils/emailHelper.js";
 const registerUser = async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
@@ -11,26 +12,63 @@ const registerUser = async (req, res) => {
         : "https://thumbs.dreamstime.com/b/profile-anonymous-face-icon-gray-silhouette-person-male-default-avatar-photo-placeholder-isolated-white-background-profile-107327860.jpg";
     const existingUser = await prisma.user.findUnique({
         where: {
-            email: email
-        }
+            email: email,
+        },
     });
-    if (existingUser) {
-        throw new ErrorHandler(409, "User with the given email lready exists");
+    if (existingUser && existingUser.verified) {
+        throw new ErrorHandler(409, "User with the given email already exists");
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log("BODY:", req.body);
     console.log("FILE:", req.file);
-    const user = await prisma.user.create({
-        data: {
-            name,
+    let user;
+    if (existingUser) {
+        user = await prisma.user.update({
+            where: { email },
+            data: {
+                name,
+                hashedPassword,
+                profilePicture,
+                verified: false,
+            },
+        });
+    }
+    else {
+        user = await prisma.user.create({
+            data: {
+                name,
+                email,
+                hashedPassword,
+                profilePicture,
+                verified: false,
+            },
+        });
+    }
+    // Generate 6-digit OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+    await prisma.otp.upsert({
+        where: { email },
+        update: {
+            code: otpCode,
+            expiresAt,
+        },
+        create: {
             email,
-            hashedPassword,
-            profilePicture
-        }
+            code: otpCode,
+            expiresAt,
+        },
     });
-    res.status(201).json({
-        message: "User created successfully",
-        data: user.name
+    try {
+        await sendOtpEmail(email, otpCode);
+    }
+    catch (mailError) {
+        console.error("Failed to send OTP email:", mailError);
+        // We log it but do not crash the registration, so devs can check logs if SMTP is down
+    }
+    res.status(200).json({
+        message: "OTP verification code sent to your email",
+        email: user.email,
     });
 };
 export default registerUser;

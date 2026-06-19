@@ -23,6 +23,10 @@ const loginUser=async(req:Request,res:Response)=>{
         throw new ErrorHandler(404,"User with given email id doesnt exists")
     }
 
+    if (!isUserExists.verified) {
+        throw new ErrorHandler(400, "Please verify your email address before logging in");
+    }
+
     const isMatch=await bcrypt.compare(password,isUserExists.hashedPassword)
 
     if(!isMatch){
@@ -36,10 +40,13 @@ const loginUser=async(req:Request,res:Response)=>{
     
 
     return res.status(200).json({
-        message:"login successfull",
-        data:{
-            token,
-            userName:isUserExists.name
+        message: "login successfull",
+        token,
+        user: {
+            id: isUserExists.id,
+            name: isUserExists.name,
+            email: isUserExists.email,
+            profilePicture: isUserExists.profilePicture
         }
     })
 }
