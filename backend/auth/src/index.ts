@@ -9,5 +9,5 @@ const PORT=envConfig.PORT
 
 
 app.listen(PORT,()=>{
-    console.log(`Auth service is running on http://localhost:${PORT}`)
+    console.log(`Auth service is running on port ${PORT}`)
 })
