@@ -38,6 +38,7 @@ app.get("/test-mail", async (req, res) => {
     });
 
     res.json(info);
+    res.send("Email sent successfully");
   } catch (err) {
     res.status(500).json(err);
   }
