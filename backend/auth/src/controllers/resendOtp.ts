@@ -10,23 +10,21 @@ const resendOtp = async (req: Request, res: Response) => {
     throw new ErrorHandler(400, "Email is required");
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const pending = await prisma.otp.findUnique({ where: { email } });
 
-  if (!user) {
-    throw new ErrorHandler(404, "No account found with this email");
-  }
-
-  if (user.verified) {
-    throw new ErrorHandler(400, "This email is already verified");
+  if (!pending) {
+    throw new ErrorHandler(
+      404,
+      "No pending registration found for this email. Please register again.",
+    );
   }
 
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-  await prisma.otp.upsert({
+  await prisma.otp.update({
     where: { email },
-    update: { code: otpCode, expiresAt },
-    create: { email, code: otpCode, expiresAt },
+    data: { code: otpCode, expiresAt },
   });
 
   const emailSent = await sendOtpEmail(email, otpCode);

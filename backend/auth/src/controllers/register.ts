@@ -18,47 +18,23 @@ const registerUser = async (req: Request, res: Response) => {
     ? req.file.path
     : "https://thumbs.dreamstime.com/b/profile-anonymous-face-icon-gray-silhouette-person-male-default-avatar-photo-placeholder-isolated-white-background-profile-107327860.jpg";
 
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-  });
+  // Block only if a VERIFIED user already owns this email
+  const existingUser = await prisma.user.findUnique({ where: { email } });
 
-  if (existingUser && existingUser.verified) {
+  if (existingUser) {
     throw new ErrorHandler(409, "User with the given email already exists");
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  let user;
-  if (existingUser) {
-    user = await prisma.user.update({
-      where: { email },
-      data: {
-        name,
-        hashedPassword,
-        profilePicture,
-        verified: false,
-      },
-    });
-  } else {
-    user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        hashedPassword,
-        profilePicture,
-        verified: false,
-      },
-    });
-  }
-
-  // Generate 6-digit OTP
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
+  // Store pending signup details on the OTP record — NOT in user table yet
   await prisma.otp.upsert({
     where: { email },
-    update: { code: otpCode, expiresAt },
-    create: { email, code: otpCode, expiresAt },
+    update: { code: otpCode, expiresAt, name, hashedPassword, profilePicture },
+    create: { email, code: otpCode, expiresAt, name, hashedPassword, profilePicture },
   });
 
   const emailSent = await sendOtpEmail(email, otpCode);
@@ -66,8 +42,8 @@ const registerUser = async (req: Request, res: Response) => {
   res.status(200).json({
     message: emailSent
       ? "OTP verification code sent to your email"
-      : "Account created, but we couldn't send the OTP email. Please request a new code.",
-    email: user.email,
+      : "Couldn't send the OTP email. Please request a new code.",
+    email,
     emailSent,
   });
 };

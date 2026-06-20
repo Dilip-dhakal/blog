@@ -10,9 +10,7 @@ const verifyOtp = async (req: Request, res: Response) => {
     throw new ErrorHandler(400, "Email and OTP code are required");
   }
 
-  const otpRecord = await prisma.otp.findUnique({
-    where: { email },
-  });
+  const otpRecord = await prisma.otp.findUnique({ where: { email } });
 
   if (!otpRecord) {
     throw new ErrorHandler(400, "No OTP verification active for this email");
@@ -26,19 +24,21 @@ const verifyOtp = async (req: Request, res: Response) => {
     throw new ErrorHandler(400, "Verification code has expired");
   }
 
-  const user = await prisma.user.update({
-    where: { email },
-    data: { verified: true },
+  // OTP is valid — NOW create the real user
+  const user = await prisma.user.create({
+    data: {
+      name: otpRecord.name,
+      email: otpRecord.email,
+      hashedPassword: otpRecord.hashedPassword,
+      profilePicture: otpRecord.profilePicture,
+      verified: true,
+    },
   });
 
-  await prisma.otp.delete({
-    where: { email },
-  });
+  // OTP record no longer needed
+  await prisma.otp.delete({ where: { email } });
 
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-  });
+  const token = generateToken({ id: user.id, email: user.email });
 
   res.status(200).json({
     message: "Email verified successfully",

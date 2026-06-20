@@ -15,6 +15,7 @@ datasource db {
 
 model User {
   id            String @id @default(cuid())
+  
   name          String
   email         String @unique
   hashedPassword String
@@ -39,11 +40,12 @@ model Blog {
 }
 
 model Otp {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  code      String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  email          String   @id
+  code           String
+  expiresAt      DateTime
+  name           String
+  hashedPassword String
+  profilePicture String
 }
 
 model BlogView {
