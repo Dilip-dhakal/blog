@@ -1,66 +1,42 @@
-import nodemailer from "nodemailer";
+// emailHelper.ts
+import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const getEmailUser = () =>
-  process.env.NODEMAILER_GMAIL || process.env.EMAIL_USER;
-
-const getEmailPass = () => {
-  const pass = process.env.GMAIL_APP_PASSWORD || process.env.EMAIL_PASS;
-  return pass?.replace(/\s/g, "");
-};
-
-const getTransporter = () => {
-  const user = getEmailUser();
-  const pass = getEmailPass();
-
-  if (!user || !pass) {
-    console.error("❌ Missing email credentials");
+const getResendClient = () => {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.error("❌ Missing RESEND_API_KEY");
     return null;
   }
-
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user,
-      pass,
-    },
-  });
+  return new Resend(apiKey);
 };
 
 export const sendOtpEmail = async (email: string, code: string) => {
-  const emailUser = getEmailUser();
-  const transporter = getTransporter();
+  const resend = getResendClient();
 
-  if (!transporter) {
+  if (!resend) {
     console.log(`[DEV OTP] ${email} → ${code}`);
     return true;
   }
 
-  const mailOptions = {
-    from: emailUser,
-    to: email,
-    subject: "Verify OTP",
-    text: `Your OTP is ${code}`,
-  };
-
   console.log("📧 Sending email to:", email);
 
   try {
-    // 🔥 IMPORTANT: add timeout safeguard
-    const sendPromise = transporter.sendMail(mailOptions);
+    const { data, error } = await resend.emails.send({
+      from:process.env.EMAIL_USER as string , // swap once domain is verified
+      to: email,
+      subject: "Verify OTP",
+      text: `Your OTP is ${code}`,
+    });
 
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("SMTP timeout")), 8000)
-    );
+    if (error) {
+      console.error("❌ EMAIL FAILED:", error);
+      return false;
+    }
 
-    const info = await Promise.race([sendPromise, timeoutPromise]);
-
-    console.log("✅ EMAIL SENT:", (info as any).messageId);
-
+    console.log("✅ EMAIL SENT:", data?.id);
     return true;
   } catch (err) {
     console.error("❌ EMAIL FAILED:", err);

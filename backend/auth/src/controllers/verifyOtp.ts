@@ -26,18 +26,15 @@ const verifyOtp = async (req: Request, res: Response) => {
     throw new ErrorHandler(400, "Verification code has expired");
   }
 
-  // Update user verification status
   const user = await prisma.user.update({
     where: { email },
     data: { verified: true },
   });
 
-  // Delete OTP so it cannot be reused
   await prisma.otp.delete({
     where: { email },
   });
 
-  // Automatically log in user by generating JWT token
   const token = generateToken({
     id: user.id,
     email: user.email,

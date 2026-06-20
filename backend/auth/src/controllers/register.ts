@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { prisma } from "../libs/prisma.js";
 import { ErrorHandler } from "../errors/errorHandler.js";
 import bcrypt from "bcrypt";
@@ -19,9 +19,7 @@ const registerUser = async (req: Request, res: Response) => {
     : "https://thumbs.dreamstime.com/b/profile-anonymous-face-icon-gray-silhouette-person-male-default-avatar-photo-placeholder-isolated-white-background-profile-107327860.jpg";
 
   const existingUser = await prisma.user.findUnique({
-    where: {
-      email: email,
-    },
+    where: { email },
   });
 
   if (existingUser && existingUser.verified) {
@@ -29,8 +27,6 @@ const registerUser = async (req: Request, res: Response) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  console.log("BODY:", req.body);
-  console.log("FILE:", req.file);
 
   let user;
   if (existingUser) {
@@ -61,25 +57,18 @@ const registerUser = async (req: Request, res: Response) => {
 
   await prisma.otp.upsert({
     where: { email },
-    update: {
-      code: otpCode,
-      expiresAt,
-    },
-    create: {
-      email,
-      code: otpCode,
-      expiresAt,
-    },
+    update: { code: otpCode, expiresAt },
+    create: { email, code: otpCode, expiresAt },
   });
 
- // DO NOT block request waiting for email
-sendOtpEmail(email, otpCode).catch((err) => {
-  console.error("Email failed:", err);
-});
+  const emailSent = await sendOtpEmail(email, otpCode);
 
   res.status(200).json({
-    message: "OTP verification code sent to your email",
+    message: emailSent
+      ? "OTP verification code sent to your email"
+      : "Account created, but we couldn't send the OTP email. Please request a new code.",
     email: user.email,
+    emailSent,
   });
 };
 
