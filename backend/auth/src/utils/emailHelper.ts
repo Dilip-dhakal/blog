@@ -25,7 +25,7 @@ export const sendOtpEmail = async (email: string, code: string) => {
 
   try {
     const { data, error } = await resend.emails.send({
-      from:process.env.EMAIL_USER as string , // swap once domain is verified
+      from: 'onboarding@resend.dev', // swap once domain is verified
       to: email,
       subject: "Verify OTP",
       text: `Your OTP is ${code}`,
